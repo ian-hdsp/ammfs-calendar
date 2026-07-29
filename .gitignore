@@ -18,3 +18,4 @@ venv/
 .vscode/
 *.swp
 FEED_URL.txt
+.feedtoken

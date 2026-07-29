@@ -271,7 +271,7 @@ Secrets are marked ✱; everything else can be a repository variable.
 | `FEED_BASENAME`            | `zeffy-events`                    | Filename stem before the token               |
 | `PAGES_BASE_URL`           | *(set by workflow)*               | Only used to print subscribe URLs            |
 | `EMIT_ROBOTS`              | `true`                            | Write a disallow-all `robots.txt`            |
-| `CALENDAR_NAME`            | `American Made Miniatures Events` | Name subscribers see                         |
+| `CALENDAR_NAME`            | `Zeffy Events` | Name subscribers see                         |
 | `DEFAULT_TIMEZONE`         | `America/Los_Angeles`                | Used when a campaign carries no timezone     |
 | `DEFAULT_DURATION_MINUTES` | `120`                             | Applied when an event has a start but no end |
 | `REFRESH_INTERVAL`         | `PT30M`                           | Advertised refresh hint                      |
