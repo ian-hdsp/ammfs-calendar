@@ -129,3 +129,20 @@ class TestRenderCalendar:
     def test_every_vevent_is_closed(self):
         feed = render_calendar([timed_occ(), timed_occ(sync_key="c2:0")], now=STAMP)
         assert feed.count("BEGIN:VEVENT") == feed.count("END:VEVENT") == 2
+
+
+class TestCalendarIdentity:
+    def test_default_name_and_prodid(self):
+        feed = render_calendar([])
+        assert "NAME:AMFS Zeffy Events" in feed
+        assert "X-WR-CALNAME:AMFS Zeffy Events" in feed
+        assert "PRODID:-//AMFS//Zeffy Events//EN" in feed
+
+    def test_prodid_is_overridable(self):
+        feed = render_calendar([], prodid="-//Other//Thing//EN")
+        assert "PRODID:-//Other//Thing//EN" in feed
+
+    def test_name_is_escaped(self):
+        # A comma in the name would otherwise split the property value.
+        feed = render_calendar([], calendar_name="AMFS, Events")
+        assert "NAME:AMFS\\, Events" in feed

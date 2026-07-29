@@ -47,7 +47,9 @@ class Config:
     exclude_title_pattern: str = ""
 
     # --- Feed ---
-    calendar_name: str = "Zeffy Events"
+    calendar_name: str = "AMFS Zeffy Events"
+    # Generator tag. Never displayed by clients; identifies what wrote the feed.
+    prodid: str = "-//AMFS//Zeffy Events//EN"
     default_timezone: str = "America/Los_Angeles"
     default_duration_minutes: int = 120
     # Advertised refresh hint, matching the workflow cron. Clients treat it as
@@ -87,9 +89,8 @@ class Config:
             zeffy_field_map=parsed_map,
             sync_all_campaigns=_bool("SYNC_ALL_CAMPAIGNS", False),
             exclude_title_pattern=os.environ.get("EXCLUDE_TITLE_PATTERN", "").strip(),
-            calendar_name=os.environ.get(
-                "CALENDAR_NAME", "Zeffy Events"
-            ),
+            calendar_name=os.environ.get("CALENDAR_NAME", "AMFS Zeffy Events"),
+            prodid=os.environ.get("PRODID", "-//AMFS//Zeffy Events//EN"),
             default_timezone=os.environ.get("DEFAULT_TIMEZONE", "America/Los_Angeles"),
             default_duration_minutes=_int("DEFAULT_DURATION_MINUTES", 120),
             refresh_interval=os.environ.get("REFRESH_INTERVAL", "PT30M"),

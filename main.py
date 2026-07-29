@@ -120,6 +120,7 @@ def build_feed(cfg: Config) -> tuple[str, int]:
         domain=cfg.uid_domain,
         refresh=cfg.refresh_interval,
         now=now,
+        prodid=cfg.prodid,
     )
     return feed, len(occurrences)
 

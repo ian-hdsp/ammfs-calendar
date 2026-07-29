@@ -107,11 +107,12 @@ def render_event(occ: Occurrence, dtstamp: datetime, domain: str) -> list[str]:
 
 def render_calendar(
     occurrences: list[Occurrence],
-    calendar_name: str = "Zeffy Events",
-    timezone: str = "America/New_York",
+    calendar_name: str = "AMFS Zeffy Events",
+    timezone: str = "America/Los_Angeles",
     domain: str = "americanmademiniatures.org",
     refresh: str = "PT1H",
     now: datetime | None = None,
+    prodid: str = "-//AMFS//Zeffy Events//EN",
 ) -> str:
     """Return a complete .ics feed as a CRLF-delimited string."""
     dtstamp = now or datetime.now(tz=UTC)
@@ -119,7 +120,7 @@ def render_calendar(
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//American Made Miniatures//Zeffy Calendar Sync//EN",
+        f"PRODID:{prodid}",
         "CALSCALE:GREGORIAN",
         f"NAME:{escape_text(calendar_name)}",
         f"X-WR-CALNAME:{escape_text(calendar_name)}",
