@@ -1,0 +1,19 @@
+# Holds a live Zeffy API key and the feed token
+.env
+
+# Generated calendar feeds and the Pages artifact directory
+*.ics
+_site/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.swp

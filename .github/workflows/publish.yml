@@ -1,0 +1,91 @@
+name: Publish Zeffy calendar feed
+
+# Build the .ics from the Zeffy API and publish it to GitHub Pages.
+#
+# Deliberately ONE job rather than the conventional build + deploy pair:
+# Actions rounds every job up to the nearest billed minute, so splitting it
+# would double the billed time of a run that takes well under a minute. Public
+# repos get unlimited free minutes so this costs nothing today -- the job stays
+# single so the workflow still fits a private repo unchanged.
+
+on:
+  schedule:
+    # Every 30 minutes, offset off the hour -- the top of the hour is the
+    # busiest slot on shared runners and is where scheduled jobs get delayed.
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and report without publishing'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two runs deploy Pages at once. Do not cancel in progress: a
+# half-finished deploy is worse than a slightly late one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Only on manual/push runs. Running them every 30 minutes would re-test
+      # code that has not changed since the last commit.
+      - name: Run tests
+        if: ${{ github.event_name != 'schedule' }}
+        run: pip install pytest && python -m pytest
+
+      # enablement:true turns Pages on via the API the first time, so there is
+      # no "go flip a setting in the UI" step.
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Build the feed
+        env:
+          ZEFFY_API_KEY: ${{ secrets.ZEFFY_API_KEY }}
+          FEED_TOKEN: ${{ secrets.FEED_TOKEN }}
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+          ZEFFY_FIELD_MAP: ${{ vars.ZEFFY_FIELD_MAP }}
+          CALENDAR_NAME: ${{ vars.CALENDAR_NAME || 'American Made Miniatures Events' }}
+          DEFAULT_TIMEZONE: ${{ vars.DEFAULT_TIMEZONE || 'America/New_York' }}
+          SYNC_ALL_CAMPAIGNS: ${{ vars.SYNC_ALL_CAMPAIGNS || 'false' }}
+          SITE_DIR: _site
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: python main.py
+
+      - name: Upload Pages artifact
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/deploy-pages@v4

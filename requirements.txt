@@ -1,0 +1,3 @@
+# The whole runtime dependency list. Publishing is done by GitHub Pages, so
+# there is no cloud SDK and no serverless framework here.
+requests==2.32.*
