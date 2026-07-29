@@ -40,10 +40,15 @@ class Config:
     zeffy_field_map: dict[str, list[str]] = field(default_factory=dict)
     # By default only campaigns that look like events (ticketing) are included.
     sync_all_campaigns: bool = False
+    # Case-insensitive regex. Campaigns whose title matches are dropped.
+    # Zeffy has no "internal only" flag, so staging campaigns -- templates,
+    # accidental duplicates -- are ordinary campaigns carrying real dates and
+    # would otherwise reach subscribers.
+    exclude_title_pattern: str = ""
 
     # --- Feed ---
     calendar_name: str = "American Made Miniatures Events"
-    default_timezone: str = "America/New_York"
+    default_timezone: str = "America/Los_Angeles"
     default_duration_minutes: int = 120
     # Advertised refresh hint, matching the workflow cron. Clients treat it as
     # a suggestion at best, and Google Calendar ignores it outright.
@@ -81,10 +86,11 @@ class Config:
             zeffy_page_size=_int("ZEFFY_PAGE_SIZE", 100),
             zeffy_field_map=parsed_map,
             sync_all_campaigns=_bool("SYNC_ALL_CAMPAIGNS", False),
+            exclude_title_pattern=os.environ.get("EXCLUDE_TITLE_PATTERN", "").strip(),
             calendar_name=os.environ.get(
                 "CALENDAR_NAME", "American Made Miniatures Events"
             ),
-            default_timezone=os.environ.get("DEFAULT_TIMEZONE", "America/New_York"),
+            default_timezone=os.environ.get("DEFAULT_TIMEZONE", "America/Los_Angeles"),
             default_duration_minutes=_int("DEFAULT_DURATION_MINUTES", 120),
             refresh_interval=os.environ.get("REFRESH_INTERVAL", "PT30M"),
             uid_domain=os.environ.get("UID_DOMAIN", "americanmademiniatures.org"),

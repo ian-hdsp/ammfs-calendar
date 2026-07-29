@@ -27,12 +27,16 @@ CANDIDATES: dict[str, list[str]] = {
     "title": ["title", "name", "campaignName", "eventName", "formName"],
     "type": ["type", "campaignType", "formType", "kind", "category"],
     "status": ["status", "state", "publicationStatus"],
+    # Zeffy uses snake_case start_date/end_date on both the campaign and each
+    # occurrence, as epoch seconds. The camelCase spellings are kept as
+    # fallbacks in case the API is not consistent across account types.
     "start": [
-        "startDate", "startsAt", "start_at", "startDateTime", "eventDate",
-        "eventStartDate", "start", "dateTime", "date",
+        "start_date", "startDate", "startsAt", "start_at", "startDateTime",
+        "eventDate", "eventStartDate", "start", "dateTime", "date",
     ],
     "end": [
-        "endDate", "endsAt", "end_at", "endDateTime", "eventEndDate", "end",
+        "end_date", "endDate", "endsAt", "end_at", "endDateTime",
+        "eventEndDate", "end",
     ],
     "timezone": ["timezone", "timeZone", "tz", "eventTimezone"],
     "location": [
@@ -158,6 +162,22 @@ def strip_html(text: str) -> str:
     return re.sub(r"\s+", " ", unescaped).strip()
 
 
+def is_archived(record: dict) -> bool:
+    """True for campaigns or occurrences that should not reach the calendar.
+
+    Zeffy keeps archived occurrences in the campaign's `occurrences` list --
+    they were 14% of this account's dates on first contact -- so filtering
+    them is what stops cancelled and retired tour slots appearing as live
+    calendar entries.
+    """
+    if record.get("is_archived") or record.get("archived"):
+        return True
+    if record.get("deleted_at"):
+        return True
+    status = str(record.get("status") or "").strip().lower()
+    return status in ("archived", "deleted", "draft", "inactive")
+
+
 def is_event_campaign(record: dict, resolver: FieldResolver) -> bool:
     raw_type = resolver.get(record, "type", "")
     type_text = str(raw_type).lower() if raw_type else ""
@@ -182,6 +202,8 @@ def _occurrence_windows(
                 parsed = parse_temporal(item)
                 if parsed:
                     windows.append((str(index), item, None))
+                continue
+            if is_archived(item):
                 continue
             start = resolver.get(item, "start")
             if start is None:

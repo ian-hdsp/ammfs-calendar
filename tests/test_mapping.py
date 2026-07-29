@@ -7,6 +7,7 @@ from mapping import (
     FieldResolver,
     campaign_to_occurrences,
     is_event_campaign,
+    is_archived,
     parse_temporal,
     stringify_location,
     strip_html,
@@ -193,3 +194,64 @@ class TestCampaignToOccurrences:
         assert h1 == occ_of(dict(base))[0].content_hash()   # stable
         assert h1 != occ_of(moved)[0].content_hash()
         assert h1 != occ_of(renamed)[0].content_hash()
+
+
+class TestArchivedFiltering:
+    def test_archived_campaign_is_archived(self):
+        assert is_archived({"id": "c1", "is_archived": True}) is True
+
+    def test_deleted_campaign_is_archived(self):
+        assert is_archived({"id": "c1", "deleted_at": "2026-01-01T00:00:00Z"}) is True
+
+    @pytest.mark.parametrize("status", ["archived", "deleted", "draft", "inactive", "ARCHIVED"])
+    def test_retired_statuses(self, status):
+        assert is_archived({"id": "c1", "status": status}) is True
+
+    def test_active_campaign_is_not_archived(self):
+        assert is_archived({"id": "c1", "status": "active", "is_archived": False}) is False
+
+    def test_missing_flags_default_to_live(self):
+        assert is_archived({"id": "c1"}) is False
+
+    def test_archived_occurrences_are_dropped(self):
+        # Zeffy leaves archived occurrences in the list; they were 14% of the
+        # real account's dates and must not reach the calendar.
+        record = {
+            "id": "c1",
+            "type": "ticketing",
+            "occurrences": [
+                {"id": "live", "start_date": 1786035600, "end_date": 1786039200},
+                {"id": "gone", "start_date": 1786122000, "end_date": 1786125600,
+                 "is_archived": True},
+            ],
+        }
+        occs = occ_of(record)
+        assert [o.sync_key for o in occs] == ["c1:live"]
+
+    def test_campaign_with_only_archived_occurrences_yields_nothing(self):
+        record = {
+            "id": "c1",
+            "type": "ticketing",
+            "occurrences": [
+                {"id": "gone", "start_date": 1786122000, "is_archived": True},
+            ],
+        }
+        assert occ_of(record) == []
+
+
+class TestZeffySnakeCaseDates:
+    def test_epoch_seconds_from_start_date(self):
+        record = {"id": "c1", "type": "ticketing",
+                  "occurrences": [{"id": "o1", "start_date": 1786035600,
+                                   "end_date": 1786039200}]}
+        occ = occ_of(record)[0]
+        assert occ.start.timestamp() == 1786035600
+        assert occ.end.timestamp() == 1786039200
+
+    def test_campaign_level_snake_case_dates_resolve(self):
+        # No occurrences list: must fall back to the campaign's own dates.
+        record = {"id": "c1", "type": "ticketing",
+                  "start_date": 1786035600, "end_date": 1786039200}
+        occs = occ_of(record)
+        assert len(occs) == 1
+        assert occs[0].start.timestamp() == 1786035600

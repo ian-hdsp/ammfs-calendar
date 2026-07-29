@@ -171,6 +171,11 @@ Every 30 minutes:
    Zeffy event can carry multiple dates, and each becomes its own `VEVENT`.
 3. Renders the feed into `_site/` and deploys that directory to Pages.
 
+Archived occurrences are skipped. Zeffy leaves them in the campaign's
+`occurrences` list -- they were 28 of 197 dates on first contact with the real
+account -- so filtering them is what keeps retired tour slots off the
+calendar.
+
 The feed is rebuilt **whole** every run, which is what makes this simple: no
 state, no reconciliation, no delete logic. An event removed in Zeffy stops
 appearing, and subscribers drop it on their next refresh.
@@ -267,11 +272,12 @@ Secrets are marked ✱; everything else can be a repository variable.
 | `PAGES_BASE_URL`           | *(set by workflow)*               | Only used to print subscribe URLs            |
 | `EMIT_ROBOTS`              | `true`                            | Write a disallow-all `robots.txt`            |
 | `CALENDAR_NAME`            | `American Made Miniatures Events` | Name subscribers see                         |
-| `DEFAULT_TIMEZONE`         | `America/New_York`                | Used when a campaign carries no timezone     |
+| `DEFAULT_TIMEZONE`         | `America/Los_Angeles`                | Used when a campaign carries no timezone     |
 | `DEFAULT_DURATION_MINUTES` | `120`                             | Applied when an event has a start but no end |
 | `REFRESH_INTERVAL`         | `PT30M`                           | Advertised refresh hint                      |
 | `ZEFFY_FIELD_MAP`          | `{}`                              | JSON field-name overrides                    |
 | `SYNC_ALL_CAMPAIGNS`       | `false`                           | `true` includes any dated campaign           |
+| `EXCLUDE_TITLE_PATTERN`    | *(none)*                          | Case-insensitive regex; matching titles are dropped |
 | `PAST_WINDOW_DAYS`         | `90`                              | How much history to keep in the feed         |
 | `FUTURE_WINDOW_DAYS`       | `730`                             | How far ahead to include                     |
 | `DRY_RUN`                  | `false`                           | Build and report, publish nothing            |
@@ -317,6 +323,13 @@ The workflow is `.github/workflows/publish.yml`.
   and more robust when Zeffy's occurrence list changes, but a weekly series for
   a year is 52 entries.
 - The feed is readable by anyone with the URL (see *Who can read the feed*).
+- **Zeffy's campaigns API exposes no location field.** There is no venue or
+  address anywhere in the payload -- `metadata` is `{}` and `target` is null --
+  so every event is published without a `LOCATION`. Nothing here can recover
+  it; it would have to come from somewhere other than `/campaigns`.
+- Zeffy has no "internal only" flag, so staging campaigns (templates,
+  accidental duplicates) are ordinary campaigns with real dates and publish
+  like any other. `EXCLUDE_TITLE_PATTERN` is the workaround.
 - GitHub disables scheduled workflows in repos with no commit activity for 60
   days. If the feed silently stops updating, check whether the schedule was
   disabled and re-enable it in the Actions tab.

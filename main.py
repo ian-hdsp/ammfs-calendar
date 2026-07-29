@@ -15,6 +15,7 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -25,6 +26,7 @@ from mapping import (
     FieldResolver,
     Occurrence,
     campaign_to_occurrences,
+    is_archived,
     is_event_campaign,
     occurrence_sort_key,
 )
@@ -45,9 +47,28 @@ def collect_occurrences(cfg: Config, client: ZeffyClient) -> list[Occurrence]:
     occurrences: list[Occurrence] = []
     campaigns = 0
     non_events = 0
+    archived = 0
+    excluded = 0
+
+    exclude = (
+        re.compile(cfg.exclude_title_pattern, re.IGNORECASE)
+        if cfg.exclude_title_pattern
+        else None
+    )
 
     for record in client.iter_campaigns(page_size=cfg.zeffy_page_size):
         campaigns += 1
+        if exclude is not None:
+            title = str(resolver.get(record, "title", "") or "")
+            if exclude.search(title):
+                excluded += 1
+                continue
+        # Archived campaigns are dropped even under sync_all_campaigns: that
+        # flag widens which *kinds* of campaign count, not whether retired
+        # ones come back.
+        if is_archived(record):
+            archived += 1
+            continue
         if not cfg.sync_all_campaigns and not is_event_campaign(record, resolver):
             non_events += 1
             continue
@@ -61,8 +82,8 @@ def collect_occurrences(cfg: Config, client: ZeffyClient) -> list[Occurrence]:
         )
 
     log.info(
-        "Read %d campaigns (%d skipped as non-events) -> %d occurrences",
-        campaigns, non_events, len(occurrences),
+        "Read %d campaigns (%d non-events, %d archived, %d excluded) -> %d occurrences",
+        campaigns, non_events, archived, excluded, len(occurrences),
     )
     return occurrences
 

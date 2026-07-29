@@ -73,7 +73,8 @@ jobs:
           PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
           ZEFFY_FIELD_MAP: ${{ vars.ZEFFY_FIELD_MAP }}
           CALENDAR_NAME: ${{ vars.CALENDAR_NAME || 'American Made Miniatures Events' }}
-          DEFAULT_TIMEZONE: ${{ vars.DEFAULT_TIMEZONE || 'America/New_York' }}
+          DEFAULT_TIMEZONE: ${{ vars.DEFAULT_TIMEZONE || 'America/Los_Angeles' }}
+          EXCLUDE_TITLE_PATTERN: ${{ vars.EXCLUDE_TITLE_PATTERN }}
           SYNC_ALL_CAMPAIGNS: ${{ vars.SYNC_ALL_CAMPAIGNS || 'false' }}
           SITE_DIR: _site
           DRY_RUN: ${{ inputs.dry_run || 'false' }}
